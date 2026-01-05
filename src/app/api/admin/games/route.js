@@ -7,7 +7,7 @@ function isAuthorized(req) {
   const cookieToken = cookies().get(COOKIE_NAME)?.value;
   const headerToken = req.headers.get("admin_token");
   const token = cookieToken || headerToken;
-  return token && token === process.env.ADMIN_TOKEN;
+  return token && token === process.env.ADMIN_API_TOKEN;
 }
 
 export async function GET(req) {

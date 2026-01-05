@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function AdminDashboardPage() {
   const token = cookies().get("admin_token")?.value;
-  if (!token || token !== process.env.ADMIN_TOKEN) {
+  if (!token || token !== process.env.ADMIN_API_TOKEN) {
     redirect("/admin/login");
   }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 const COOKIE_NAME = "admin_token";
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+const ADMIN_TOKEN = process.env.ADMIN_API_TOKEN;
 
 function isAuthenticated(req) {
   if (!ADMIN_TOKEN) return false;

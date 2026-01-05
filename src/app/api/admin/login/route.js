@@ -8,7 +8,7 @@ export async function POST(req) {
 
     const ADMIN_USER = process.env.ADMIN_BOOTSTRAP_USER;
     const ADMIN_PASS = process.env.ADMIN_BOOTSTRAP_PASS;
-    const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+    const ADMIN_TOKEN = process.env.ADMIN_API_TOKEN;
 
     if (!ADMIN_USER || !ADMIN_PASS || !ADMIN_TOKEN) {
       return NextResponse.json(
