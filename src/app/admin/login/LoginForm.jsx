@@ -92,11 +92,6 @@ export default function LoginForm() {
           {status.loading ? "Bezig met inloggen..." : "Log in"}
         </button>
       </form>
-
-      <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>
-        Nog geen admin account? Zet een gebruiker in de database of vul de env-variabelen{" "}
-        <code>ADMIN_BOOTSTRAP_USER</code> en <code>ADMIN_BOOTSTRAP_PASS</code> in.
-      </p>
     </section>
   );
 }
