@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import AdminDashboard from "./AdminDashboard";
 
 export const metadata = {
@@ -5,5 +7,10 @@ export const metadata = {
 };
 
 export default function AdminDashboardPage() {
+  const token = cookies().get("admin_token")?.value;
+  if (!token || token !== process.env.ADMIN_TOKEN) {
+    redirect("/admin/login");
+  }
+
   return <AdminDashboard />;
 }
