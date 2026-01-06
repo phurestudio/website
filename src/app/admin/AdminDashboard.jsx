@@ -9,6 +9,32 @@ function parseList(text) {
     .filter(Boolean);
 }
 
+async function uploadFiles(files, folder = "", max = 3) {
+  const normalized = Array.from(files || [])
+    .filter((file) => file && typeof file === "object" && file.size > 0)
+    .slice(0, max);
+  if (!normalized.length) return [];
+
+  const uploaded = [];
+  for (const file of normalized) {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (folder) formData.append("folder", folder);
+
+    const res = await fetch("/api/admin/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.error || "Upload failed");
+    }
+    uploaded.push(data.url);
+  }
+
+  return uploaded;
+}
+
 export default function AdminDashboard() {
   const [gameStatus, setGameStatus] = useState({ loading: false, message: "" });
   const [newsStatus, setNewsStatus] = useState({ loading: false, message: "" });
@@ -32,22 +58,33 @@ export default function AdminDashboard() {
     e.preventDefault();
     const formEl = e.currentTarget;
     const form = new FormData(formEl);
-    const payload = {
-      title: form.get("title"),
-      slug: form.get("slug"),
-      tagline: form.get("tagline"),
-      banner: form.get("banner"),
-      youtubeUrl: form.get("youtubeUrl"),
-      playstoreUrl: form.get("playstoreUrl"),
-      steamUrl: form.get("steamUrl"),
-      appstoreUrl: form.get("appstoreUrl"),
-      description: form.get("description"),
-      platforms: parseList(form.get("platforms") || ""),
-      features: parseList(form.get("features") || ""),
-    };
 
-    setGameStatus({ loading: true, message: "" });
+    setGameStatus({ loading: true, message: "Uploading files..." });
     try {
+      const bannerFile = form.get("bannerFile");
+      const screenshots = form.getAll("game_screenshots");
+
+      const [bannerUrl = ""] =
+        bannerFile && bannerFile.size
+          ? await uploadFiles([bannerFile], "games/banners", 1)
+          : [];
+      const screenshotUrls = await uploadFiles(screenshots, "games/screenshots", 3);
+
+      const payload = {
+        title: form.get("title"),
+        slug: form.get("slug"),
+        tagline: form.get("tagline"),
+        banner: bannerUrl,
+        screenshots: screenshotUrls,
+        youtubeUrl: form.get("youtubeUrl"),
+        playstoreUrl: form.get("playstoreUrl"),
+        steamUrl: form.get("steamUrl"),
+        appstoreUrl: form.get("appstoreUrl"),
+        description: form.get("description"),
+        platforms: parseList(form.get("platforms") || ""),
+        features: parseList(form.get("features") || ""),
+      };
+
       const res = await fetch("/api/admin/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -66,28 +103,21 @@ export default function AdminDashboard() {
     e.preventDefault();
     const formEl = e.currentTarget;
     const form = new FormData(formEl);
-    const images = [
-      form.get("news_image1"),
-      form.get("news_image2"),
-      form.get("news_image3"),
-    ]
-      .map((v) => (v || "").toString().trim())
-      .filter(Boolean)
-      .slice(0, 3);
-    const selectedGame = (form.get("news_gameSlug") || "").toString().trim();
-    const payload = {
-      title: form.get("news_title"),
-      slug: form.get("news_slug"),
-      excerpt: form.get("news_excerpt"),
-      images,
-      image: images[0] || "",
-      youtubeUrl: form.get("news_youtubeUrl"),
-      gameSlug: selectedGame || null,
-      body: form.get("news_body"),
-    };
 
-    setNewsStatus({ loading: true, message: "" });
+    setNewsStatus({ loading: true, message: "Uploading files..." });
     try {
+      const uploadedImages = await uploadFiles(form.getAll("news_images"), "news/images", 3);
+      const selectedGame = (form.get("news_gameSlug") || "").toString().trim();
+      const payload = {
+        title: form.get("news_title"),
+        slug: form.get("news_slug"),
+        excerpt: form.get("news_excerpt"),
+        images: uploadedImages,
+        image: uploadedImages[0] || "",
+        youtubeUrl: form.get("news_youtubeUrl"),
+        gameSlug: selectedGame || null,
+        body: form.get("news_body"),
+      };
       const res = await fetch("/api/admin/news", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -141,11 +171,22 @@ export default function AdminDashboard() {
               <input name="slug" style={inputStyle} placeholder="catspin" />
             </label>
             <label style={labelStyle}>
-              <span>Banner URL</span>
+              <span>Banner upload</span>
               <input
-                name="banner"
+                name="bannerFile"
+                type="file"
+                accept="image/*"
                 style={inputStyle}
-                placeholder="/assets/banners/catspin.png or complete URL"
+              />
+            </label>
+            <label style={labelStyle}>
+              <span>Screenshots (max 3)</span>
+              <input
+                name="game_screenshots"
+                type="file"
+                accept="image/*"
+                multiple
+                style={inputStyle}
               />
             </label>
             <label style={labelStyle}>
@@ -254,23 +295,13 @@ export default function AdminDashboard() {
             </label>
             <label style={labelStyle}>
               <span>Screenshots (max 3) - (optional)</span>
-              <div style={{ display: "grid", gap: 6 }}>
-                <input
-                  name="news_image1"
-                  style={inputStyle}
-                  placeholder="Screenshot 1 (main image)"
-                />
-                <input
-                  name="news_image2"
-                  style={inputStyle}
-                  placeholder="Screenshot 2"
-                />
-                <input
-                  name="news_image3"
-                  style={inputStyle}
-                  placeholder="Screenshot 3"
-                />
-              </div>
+              <input
+                name="news_images"
+                type="file"
+                accept="image/*"
+                multiple
+                style={inputStyle}
+              />
             </label>
             <label style={labelStyle}>
               <span>YouTube URL (optional)</span>

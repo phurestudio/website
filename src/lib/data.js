@@ -35,6 +35,7 @@ function mapGameRow(row) {
     title: row.title,
     tagline: row.tagline,
     banner: row.banner,
+    screenshots: parseListValue(row.screenshots),
     youtubeUrl: row.youtube_url,
     playstoreUrl: row.playstore_url,
     steamUrl: row.steam_url,
@@ -109,6 +110,7 @@ export async function createGame(payload) {
     slug,
     tagline,
     banner,
+    screenshots,
     youtubeUrl,
     playstoreUrl,
     steamUrl,
@@ -130,15 +132,16 @@ export async function createGame(payload) {
   const pool = getPool();
   await pool.query(
     `
-      INSERT INTO games (slug, title, tagline, banner, youtube_url, playstore_url, steam_url, appstore_url, description, platforms, features)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE title = VALUES(title), tagline = VALUES(tagline), banner = VALUES(banner), youtube_url = VALUES(youtube_url), playstore_url = VALUES(playstore_url), steam_url = VALUES(steam_url), appstore_url = VALUES(appstore_url), description = VALUES(description), platforms = VALUES(platforms), features = VALUES(features)
+      INSERT INTO games (slug, title, tagline, banner, screenshots, youtube_url, playstore_url, steam_url, appstore_url, description, platforms, features)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE title = VALUES(title), tagline = VALUES(tagline), banner = VALUES(banner), screenshots = VALUES(screenshots), youtube_url = VALUES(youtube_url), playstore_url = VALUES(playstore_url), steam_url = VALUES(steam_url), appstore_url = VALUES(appstore_url), description = VALUES(description), platforms = VALUES(platforms), features = VALUES(features)
     `,
     [
       normalizedSlug,
       title,
       tagline || "",
       banner || "",
+      JSON.stringify(parseListValue(screenshots)),
       normalizedVideo,
       normalizedStore,
       normalizedSteam,

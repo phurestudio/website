@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { games } from "@/lib/games";
+import { createGame, listGames } from "@/lib/data";
 
 const COOKIE_NAME = "admin_token";
 
@@ -15,10 +15,16 @@ export async function GET(req) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
   }
 
-  return new Response(JSON.stringify({ games }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    const games = await listGames();
+    return new Response(JSON.stringify({ games }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Failed to list games", err);
+    return new Response(JSON.stringify({ error: "Failed to list games" }), { status: 500 });
+  }
 }
 
 export async function POST(req) {
@@ -28,15 +34,48 @@ export async function POST(req) {
 
   try {
     const payload = await req.json();
-    // Push new game to your in-memory games array
-    // WARNING: This resets on redeploy. For permanent storage, use a DB.
-    games.push(payload);
+    const slug = await createGame({
+      title: payload.title,
+      slug: payload.slug,
+      tagline: payload.tagline,
+      banner: payload.banner,
+      screenshots: payload.screenshots,
+      youtubeUrl: payload.youtubeUrl,
+      playstoreUrl: payload.playstoreUrl,
+      steamUrl: payload.steamUrl,
+      appstoreUrl: payload.appstoreUrl,
+      description: payload.description,
+      platforms: payload.platforms,
+      features: payload.features,
+    });
 
-    return new Response(JSON.stringify({ message: "Game added", slug: payload.slug }), {
+    return new Response(JSON.stringify({ message: "Game added", slug }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: "Failed to add game" }), { status: 500 });
+    console.error("Failed to add game", err);
+    const error = err?.message || "Failed to add game";
+    return new Response(JSON.stringify({ error }), { status: 500 });
+  }
+}
+
+export async function PUT(req) {
+  if (!isAuthorized(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+
+  try {
+    const payload = await req.json();
+    const slug = await createGame(payload);
+
+    return new Response(JSON.stringify({ message: "Game updated", slug }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Failed to update game", err);
+    const error = err?.message || "Failed to update game";
+    return new Response(JSON.stringify({ error }), { status: 500 });
   }
 }

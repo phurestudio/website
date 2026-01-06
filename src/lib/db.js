@@ -44,6 +44,7 @@ export async function ensureTables() {
       title VARCHAR(255) NOT NULL,
       tagline VARCHAR(255),
       banner VARCHAR(500),
+      screenshots TEXT,
       youtube_url VARCHAR(600),
       playstore_url VARCHAR(600),
       steam_url VARCHAR(600),
@@ -87,6 +88,17 @@ export async function ensureTables() {
     await connection.query(`
       ALTER TABLE news_posts
       ADD COLUMN images TEXT;
+    `);
+  } catch (err) {
+    if (err?.code !== "ER_DUP_FIELDNAME") {
+      throw err;
+    }
+  }
+
+  try {
+    await connection.query(`
+      ALTER TABLE games
+      ADD COLUMN screenshots TEXT;
     `);
   } catch (err) {
     if (err?.code !== "ER_DUP_FIELDNAME") {
