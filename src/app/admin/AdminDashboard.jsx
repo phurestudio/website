@@ -106,6 +106,11 @@ export default function AdminDashboard() {
 
     setNewsStatus({ loading: true, message: "Uploading files..." });
     try {
+      const bannerFile = form.get("news_banner");
+      const [bannerUrl = ""] =
+        bannerFile && bannerFile.size
+          ? await uploadFiles([bannerFile], "news/banners", 1)
+          : [];
       const uploadedImages = await uploadFiles(form.getAll("news_images"), "news/images", 3);
       const selectedGame = (form.get("news_gameSlug") || "").toString().trim();
       const payload = {
@@ -113,7 +118,7 @@ export default function AdminDashboard() {
         slug: form.get("news_slug"),
         excerpt: form.get("news_excerpt"),
         images: uploadedImages,
-        image: uploadedImages[0] || "",
+        image: bannerUrl,
         youtubeUrl: form.get("news_youtubeUrl"),
         gameSlug: selectedGame || null,
         body: form.get("news_body"),
@@ -292,6 +297,15 @@ export default function AdminDashboard() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label style={labelStyle}>
+              <span>Banner image</span>
+              <input
+                name="news_banner"
+                type="file"
+                accept="image/*"
+                style={inputStyle}
+              />
             </label>
             <label style={labelStyle}>
               <span>Screenshots (max 3) - (optional)</span>
