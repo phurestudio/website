@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 
 export async function POST(req) {
   try {
@@ -38,7 +39,46 @@ export async function POST(req) {
       );
     }
 
-    console.log("Contact form submitted:", { name, email, topic, message });
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpPort = process.env.SMTP_PORT;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const smtpFrom = process.env.SMTP_FROM;
+    const contactTo = process.env.CONTACT_TO || "info@phurestudios.com";
+
+    if (!smtpHost || !smtpPort || !smtpUser || !smtpPass || !smtpFrom) {
+      return NextResponse.json(
+        {
+          error:
+            "Server missing SMTP settings. Fill SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: Number(smtpPort),
+      secure: Number(smtpPort) === 465,
+      auth: { user: smtpUser, pass: smtpPass },
+    });
+
+    const subject = `Contact form: ${topic || "Contact"}`;
+    const text = [
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Topic: ${topic}`,
+      "",
+      message,
+    ].join("\n");
+
+    await transporter.sendMail({
+      from: smtpFrom,
+      to: contactTo,
+      replyTo: email || undefined,
+      subject,
+      text,
+    });
 
     return NextResponse.json({ message: "Message sent successfully!" });
   } catch (err) {
