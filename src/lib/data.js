@@ -1,6 +1,36 @@
 import { ensureTables, getPool } from "./db";
 import { games as seedGames } from "./games";
 
+const CACHE_TTL_MS = Number(process.env.DATA_CACHE_TTL_MS || 15000);
+const cache = {
+  games: { data: null, expiresAt: 0 },
+  newsList: new Map(),
+  gameBySlug: new Map(),
+  newsBySlug: new Map(),
+};
+let schemaReady = false;
+
+async function ensureSchemaOnce() {
+  if (schemaReady) return;
+  await ensureTables();
+  schemaReady = true;
+}
+
+function isFresh(entry) {
+  return entry && entry.expiresAt > Date.now();
+}
+
+function setCached(mapOrEntry, key, data) {
+  const entry = { data, expiresAt: Date.now() + CACHE_TTL_MS };
+  if (mapOrEntry instanceof Map) {
+    mapOrEntry.set(key, entry);
+  } else {
+    mapOrEntry.data = data;
+    mapOrEntry.expiresAt = entry.expiresAt;
+  }
+  return data;
+}
+
 function slugify(input = "") {
   return input
     .toString()
@@ -81,27 +111,34 @@ function mapNewsRow(row) {
 
 export async function listGames() {
   try {
-    await ensureTables();
+    if (isFresh(cache.games)) return cache.games.data;
     const pool = getPool();
     const [rows] = await pool.query("SELECT * FROM games ORDER BY created_at DESC");
-    if (!rows.length) return seedGames;
-    return rows.map(mapGameRow);
+    if (!rows.length) return setCached(cache.games, null, seedGames);
+    return setCached(cache.games, null, rows.map(mapGameRow));
   } catch (err) {
     console.error("Unable to fetch games, falling back to seed data", err);
-    return seedGames;
+    return setCached(cache.games, null, seedGames);
   }
 }
 
 export async function getGame(slug) {
   try {
-    await ensureTables();
+    const cached = cache.gameBySlug.get(slug);
+    if (isFresh(cached)) return cached.data;
+    if (isFresh(cache.games)) {
+      const found = cache.games.data?.find((g) => g.slug === slug);
+      if (found) return setCached(cache.gameBySlug, slug, found);
+    }
     const pool = getPool();
     const [rows] = await pool.query("SELECT * FROM games WHERE slug = ? LIMIT 1", [slug]);
-    if (rows.length) return mapGameRow(rows[0]);
+    if (rows.length) return setCached(cache.gameBySlug, slug, mapGameRow(rows[0]));
   } catch (err) {
     console.error("Unable to fetch game, falling back to seed data", err);
   }
-  return seedGames.find((g) => g.slug === slug) || null;
+  const fallback = seedGames.find((g) => g.slug === slug) || null;
+  if (fallback) return setCached(cache.gameBySlug, slug, fallback);
+  return null;
 }
 
 export async function createGame(payload) {
@@ -128,7 +165,7 @@ export async function createGame(payload) {
   const normalizedSteam = (steamUrl || "").trim();
   const normalizedAppStore = (appstoreUrl || "").trim();
 
-  await ensureTables();
+  await ensureSchemaOnce();
   const pool = getPool();
   await pool.query(
     `
@@ -152,37 +189,42 @@ export async function createGame(payload) {
     ]
   );
 
+  cache.games.expiresAt = 0;
+  cache.gameBySlug.clear();
   return normalizedSlug;
 }
 
 export async function listNews(limit = 5, gameSlug = null) {
   try {
-    await ensureTables();
+    const key = `${gameSlug || ""}:${Number(limit)}`;
+    const cached = cache.newsList.get(key);
+    if (isFresh(cached)) return cached.data;
     const pool = getPool();
     if (gameSlug) {
       const [rows] = await pool.query(
         "SELECT * FROM news_posts WHERE game_slug = ? ORDER BY published_at DESC LIMIT ?",
         [gameSlug, Number(limit)]
       );
-      return rows.map(mapNewsRow);
+      return setCached(cache.newsList, key, rows.map(mapNewsRow));
     }
     const [rows] = await pool.query(
       "SELECT * FROM news_posts ORDER BY published_at DESC LIMIT ?",
       [Number(limit)]
     );
-    return rows.map(mapNewsRow);
+    return setCached(cache.newsList, key, rows.map(mapNewsRow));
   } catch (err) {
     console.error("Unable to fetch news", err);
-    return [];
+    return setCached(cache.newsList, `${gameSlug || ""}:${Number(limit)}`, []);
   }
 }
 
 export async function getNews(slug) {
   try {
-    await ensureTables();
+    const cached = cache.newsBySlug.get(slug);
+    if (isFresh(cached)) return cached.data;
     const pool = getPool();
     const [rows] = await pool.query("SELECT * FROM news_posts WHERE slug = ? LIMIT 1", [slug]);
-    if (rows.length) return mapNewsRow(rows[0]);
+    if (rows.length) return setCached(cache.newsBySlug, slug, mapNewsRow(rows[0]));
   } catch (err) {
     console.error("Unable to fetch news post", err);
   }
@@ -200,7 +242,7 @@ export async function createNews(payload) {
   const finalImages = normalizedImages.length ? normalizedImages : parseImages(image);
   const primaryImage = image || finalImages[0] || "";
 
-  await ensureTables();
+  await ensureSchemaOnce();
   const pool = getPool();
   const finalExcerpt =
     excerpt ||
@@ -225,5 +267,7 @@ export async function createNews(payload) {
     ]
   );
 
+  cache.newsList.clear();
+  cache.newsBySlug.clear();
   return normalizedSlug;
 }
