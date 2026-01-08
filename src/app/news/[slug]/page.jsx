@@ -52,65 +52,28 @@ export default async function NewsDetailPage({ params }) {
           <div className="badge">{post.date || "Onbekend"}</div>
           <h1 style={{ margin: 0 }}>{post.title}</h1>
         </div>
-        {post.banner || images.length ? (
+        {post.banner ? (
           <div
             style={{
-              display: "grid",
-              gap: 10,
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              width: "100%",
+              borderRadius: 12,
+              overflow: "hidden",
+              border: "1px solid var(--border)",
+              background: "#0d111a",
+              minHeight: 180,
             }}
           >
-            {post.banner ? (
-              <div
-                key={`${post.banner}-banner`}
-                style={{
-                  width: "100%",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  border: "1px solid var(--border)",
-                  background: "#0d111a",
-                  minHeight: 180,
-                  gridColumn: "1 / -1",
-                }}
-              >
-                <img
-                  src={post.banner}
-                  alt={`${post.title} banner`}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    maxHeight: 360,
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              </div>
-            ) : null}
-            {images.map((img, idx) => (
-              <div
-                key={`${img}-${idx}`}
-                style={{
-                  width: "100%",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  border: "1px solid var(--border)",
-                  background: "#0d111a",
-                  minHeight: 180,
-                }}
-              >
-                <img
-                  src={img}
-                  alt={`${post.title} screenshot ${idx + 1}`}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    maxHeight: 360,
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              </div>
-            ))}
+            <img
+              src={post.banner}
+              alt={`${post.title} banner`}
+              style={{
+                width: "100%",
+                height: "100%",
+                maxHeight: 360,
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
           </div>
         ) : null}
         {embedUrl ? (
@@ -125,6 +88,44 @@ export default async function NewsDetailPage({ params }) {
           </div>
         ) : null}
         <p style={{ whiteSpace: "pre-line", margin: 0 }}>{post.body || post.excerpt}</p>
+        {images.length ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            <h3 style={{ margin: "6px 0 0 0" }}>Screenshots</h3>
+            <div
+              style={{
+                display: "grid",
+                gap: 10,
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              }}
+            >
+              {images.map((img, idx) => (
+                <div
+                  key={`${img}-${idx}`}
+                  style={{
+                    width: "100%",
+                    borderRadius: 12,
+                    overflow: "hidden",
+                    border: "1px solid var(--border)",
+                    background: "#0d111a",
+                    minHeight: 180,
+                  }}
+                >
+                  <img
+                    src={img}
+                    alt={`${post.title} screenshot ${idx + 1}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      maxHeight: 360,
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );
