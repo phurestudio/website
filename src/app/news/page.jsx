@@ -34,7 +34,7 @@ export default async function NewsPage() {
                 textDecoration: "none",
               }}
             >
-              {post.images?.[0] || post.image ? (
+              {post.banner || post.images?.[0] ? (
                 <div
                   style={{
                     width: "100%",
@@ -46,7 +46,7 @@ export default async function NewsPage() {
                   }}
                 >
                   <img
-                    src={post.images?.[0] || post.image}
+                    src={post.banner || post.images?.[0]}
                     alt={post.title}
                     style={{
                       width: "100%",
@@ -69,9 +69,9 @@ export default async function NewsPage() {
                   aria-hidden="true"
                 />
               )}
-              {post.images?.length > 1 ? (
+              {post.images?.length ? (
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {post.images.slice(1, 4).map((img, idx) => (
+                  {post.images.slice(0, 3).map((img, idx) => (
                     <div
                       key={`${img}-${idx}`}
                       style={{
@@ -85,7 +85,7 @@ export default async function NewsPage() {
                     >
                       <img
                         src={img}
-                        alt={`${post.title} screenshot ${idx + 2}`}
+                        alt={`${post.title} screenshot ${idx + 1}`}
                         style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                       />
                     </div>

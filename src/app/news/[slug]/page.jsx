@@ -43,7 +43,7 @@ export default async function NewsDetailPage({ params }) {
   const post = await getNews(params.slug);
   if (!post) return notFound();
   const embedUrl = getYoutubeEmbedUrl(post.youtubeUrl);
-  const images = post.images?.length ? post.images : post.image ? [post.image] : [];
+  const images = post.images?.length ? post.images : [];
 
   return (
     <div className="section" style={{ gap: 14 }}>
@@ -52,7 +52,7 @@ export default async function NewsDetailPage({ params }) {
           <div className="badge">{post.date || "Onbekend"}</div>
           <h1 style={{ margin: 0 }}>{post.title}</h1>
         </div>
-        {images.length ? (
+        {post.banner || images.length ? (
           <div
             style={{
               display: "grid",
@@ -60,6 +60,32 @@ export default async function NewsDetailPage({ params }) {
               gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             }}
           >
+            {post.banner ? (
+              <div
+                key={`${post.banner}-banner`}
+                style={{
+                  width: "100%",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  border: "1px solid var(--border)",
+                  background: "#0d111a",
+                  minHeight: 180,
+                  gridColumn: "1 / -1",
+                }}
+              >
+                <img
+                  src={post.banner}
+                  alt={`${post.title} banner`}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    maxHeight: 360,
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              </div>
+            ) : null}
             {images.map((img, idx) => (
               <div
                 key={`${img}-${idx}`}

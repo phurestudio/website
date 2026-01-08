@@ -89,16 +89,16 @@ function mapNewsRow(row) {
     (row.body
       ? `${row.body.slice(0, 180)}${row.body.length > 180 ? "..." : ""}`
       : "");
-  const images = parseImages(row.images);
-  if (!images.length && row.image) {
-    images.push(row.image);
+  const images = parseImages(row.screenshots);
+  if (!images.length && row.banner) {
+    images.push(row.banner);
   }
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
     excerpt,
-    image: images[0] || row.image,
+    banner: row.banner || images[0],
     images,
     gameSlug: row.game_slug || null,
     youtubeUrl: row.youtube_url,
@@ -232,15 +232,24 @@ export async function getNews(slug) {
 }
 
 export async function createNews(payload) {
-  const { title, slug, body, excerpt, image, images, youtubeUrl, gameSlug, published_at } = payload;
+  const {
+    title,
+    slug,
+    body,
+    excerpt,
+    banner,
+    screenshots,
+    youtubeUrl,
+    gameSlug,
+    published_at,
+  } = payload;
   const normalizedSlug = slugify(slug || title);
   if (!normalizedSlug) {
     throw new Error("Slug of titel is verplicht");
   }
   const normalizedVideo = (youtubeUrl || "").trim();
-  const normalizedImages = parseImages(images);
-  const finalImages = normalizedImages.length ? normalizedImages : parseImages(image);
-  const primaryImage = image || finalImages[0] || "";
+  const normalizedImages = parseImages(screenshots);
+  const primaryImage = banner || "";
 
   await ensureSchemaOnce();
   const pool = getPool();
@@ -250,15 +259,15 @@ export async function createNews(payload) {
 
   await pool.query(
     `
-      INSERT INTO news_posts (slug, title, excerpt, images, image, youtube_url, body, game_slug, published_at)
+      INSERT INTO news_posts (slug, title, excerpt, screenshots, banner, youtube_url, body, game_slug, published_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, NOW()))
-      ON DUPLICATE KEY UPDATE title = VALUES(title), excerpt = VALUES(excerpt), images = VALUES(images), image = VALUES(image), youtube_url = VALUES(youtube_url), body = VALUES(body), game_slug = VALUES(game_slug), published_at = COALESCE(VALUES(published_at), news_posts.published_at)
+      ON DUPLICATE KEY UPDATE title = VALUES(title), excerpt = VALUES(excerpt), screenshots = VALUES(screenshots), banner = VALUES(banner), youtube_url = VALUES(youtube_url), body = VALUES(body), game_slug = VALUES(game_slug), published_at = COALESCE(VALUES(published_at), news_posts.published_at)
     `,
     [
       normalizedSlug,
       title,
       finalExcerpt,
-      JSON.stringify(finalImages),
+      JSON.stringify(normalizedImages),
       primaryImage,
       normalizedVideo,
       body || "",

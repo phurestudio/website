@@ -63,8 +63,8 @@ export async function ensureTables() {
       title VARCHAR(255) NOT NULL,
       excerpt VARCHAR(600),
       game_slug VARCHAR(191),
-      images TEXT,
-      image VARCHAR(600),
+      banner VARCHAR(600),
+      screenshots TEXT,
       youtube_url VARCHAR(600),
       body LONGTEXT,
       published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -75,7 +75,7 @@ export async function ensureTables() {
   try {
     await connection.query(`
       ALTER TABLE news_posts
-      ADD COLUMN image VARCHAR(600);
+      ADD COLUMN banner VARCHAR(600);
     `);
   } catch (err) {
     // Ignore duplicate column errors so older tables don't break.
@@ -87,7 +87,7 @@ export async function ensureTables() {
   try {
     await connection.query(`
       ALTER TABLE news_posts
-      ADD COLUMN images TEXT;
+      ADD COLUMN screenshots TEXT;
     `);
   } catch (err) {
     if (err?.code !== "ER_DUP_FIELDNAME") {
@@ -168,6 +168,53 @@ export async function ensureTables() {
     `);
   } catch (err) {
     if (err?.code !== "ER_DUP_FIELDNAME") {
+      throw err;
+    }
+  }
+
+  // Migrate legacy columns when present, then remove them.
+  try {
+    await connection.query(`
+      UPDATE news_posts
+      SET banner = COALESCE(banner, image)
+      WHERE banner IS NULL AND image IS NOT NULL;
+    `);
+  } catch (err) {
+    if (err?.code !== "ER_BAD_FIELD_ERROR") {
+      throw err;
+    }
+  }
+
+  try {
+    await connection.query(`
+      UPDATE news_posts
+      SET screenshots = COALESCE(screenshots, images)
+      WHERE screenshots IS NULL AND images IS NOT NULL;
+    `);
+  } catch (err) {
+    if (err?.code !== "ER_BAD_FIELD_ERROR") {
+      throw err;
+    }
+  }
+
+  try {
+    await connection.query(`
+      ALTER TABLE news_posts
+      DROP COLUMN image;
+    `);
+  } catch (err) {
+    if (err?.code !== "ER_BAD_FIELD_ERROR") {
+      throw err;
+    }
+  }
+
+  try {
+    await connection.query(`
+      ALTER TABLE news_posts
+      DROP COLUMN images;
+    `);
+  } catch (err) {
+    if (err?.code !== "ER_BAD_FIELD_ERROR") {
       throw err;
     }
   }
