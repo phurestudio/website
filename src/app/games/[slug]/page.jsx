@@ -55,6 +55,9 @@ export default async function GameDetailPage({ params }) {
   const allGames = await listGames();
   const otherGames = allGames.filter((g) => g.slug !== game.slug).slice(0, 3);
   const gameNews = await listNews(3, game.slug);
+  const screenshots = Array.isArray(game.screenshots)
+    ? game.screenshots.filter(Boolean).slice(0, 6)
+    : [];
 
   const descriptionParagraphs = game.description
     ? game.description.split(/\n\s*\n/).filter(Boolean)
@@ -185,6 +188,45 @@ export default async function GameDetailPage({ params }) {
           </div>
         ) : null}
       </section>
+
+      {screenshots.length ? (
+        <section className="card" style={{ display: "grid", gap: 10 }}>
+          <h2 style={{ margin: 0 }}>Screenshots</h2>
+          <div
+            style={{
+              display: "grid",
+              gap: 10,
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            }}
+          >
+            {screenshots.map((img, idx) => (
+              <div
+                key={`${img}-${idx}`}
+                style={{
+                  width: "100%",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  border: "1px solid var(--border)",
+                  background: "#0d111a",
+                  minHeight: 160,
+                }}
+              >
+                <img
+                  src={img}
+                  alt={`${game.title} screenshot ${idx + 1}`}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    maxHeight: 360,
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="card" style={{ display: "grid", gap: 10 }}>
         <div className="section-title" style={{ alignItems: "center" }}>

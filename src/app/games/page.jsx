@@ -44,7 +44,7 @@ export default async function GamesPage() {
               }}
             >
               <img
-                src={game.banner}
+                src={game.banner || game.screenshots?.[0] || ""}
                 alt={game.title}
                 style={{
                   width: "100%",
@@ -54,6 +54,29 @@ export default async function GamesPage() {
                 }}
               />
             </a>
+            {game.screenshots?.length ? (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {game.screenshots.slice(0, 3).map((shot, idx) => (
+                  <div
+                    key={`${shot}-${idx}`}
+                    style={{
+                      width: 64,
+                      height: 44,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      border: "1px solid var(--border)",
+                      background: "#0d111a",
+                    }}
+                  >
+                    <img
+                      src={shot}
+                      alt={`${game.title} screenshot ${idx + 1}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : null}
             <div style={{ display: "grid", gap: 6 }}>
               <h3 style={{ margin: 0 }}>{game.title}</h3>
               <p style={{ margin: 0 }}>{game.tagline}</p>

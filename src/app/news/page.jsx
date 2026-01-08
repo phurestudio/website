@@ -69,6 +69,29 @@ export default async function NewsPage() {
                   aria-hidden="true"
                 />
               )}
+              {post.images?.length > 1 ? (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {post.images.slice(1, 4).map((img, idx) => (
+                    <div
+                      key={`${img}-${idx}`}
+                      style={{
+                        width: 56,
+                        height: 40,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        border: "1px solid var(--border)",
+                        background: "#0d111a",
+                      }}
+                    >
+                      <img
+                        src={img}
+                        alt={`${post.title} screenshot ${idx + 2}`}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <div className="badge" style={{ width: "fit-content" }}>
                 {post.date || "Onbekend"}
               </div>
