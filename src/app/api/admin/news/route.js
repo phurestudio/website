@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createNews, listNews } from "@/lib/data";
+import { createNews, deleteNewsBySlug, listNews } from "@/lib/data";
 
 const COOKIE_NAME = "admin_token";
 
@@ -54,6 +54,34 @@ export async function POST(req) {
   } catch (err) {
     console.error("Failed to add news", err);
     const error = err?.message || "Failed to add news";
+    return new Response(JSON.stringify({ error }), { status: 500 });
+  }
+}
+
+export async function DELETE(req) {
+  if (!isAuthorized(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const slug = url.searchParams.get("slug");
+    if (!slug) {
+      return new Response(JSON.stringify({ error: "Missing slug" }), { status: 400 });
+    }
+
+    const deleted = await deleteNewsBySlug(slug);
+    if (!deleted) {
+      return new Response(JSON.stringify({ error: "News not found" }), { status: 404 });
+    }
+
+    return new Response(JSON.stringify({ message: "News deleted", slug }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Failed to delete news", err);
+    const error = err?.message || "Failed to delete news";
     return new Response(JSON.stringify({ error }), { status: 500 });
   }
 }

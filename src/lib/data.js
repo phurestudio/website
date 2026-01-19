@@ -280,3 +280,45 @@ export async function createNews(payload) {
   cache.newsBySlug.clear();
   return normalizedSlug;
 }
+
+export async function deleteGameBySlug(slug) {
+  const normalizedSlug = slugify(slug || "");
+  if (!normalizedSlug) {
+    throw new Error("Slug is verplicht");
+  }
+
+  await ensureSchemaOnce();
+  const pool = getPool();
+
+  await pool.query("UPDATE news_posts SET game_slug = NULL WHERE game_slug = ?", [
+    normalizedSlug,
+  ]);
+  const [result] = await pool.query("DELETE FROM games WHERE slug = ?", [
+    normalizedSlug,
+  ]);
+
+  cache.games.expiresAt = 0;
+  cache.gameBySlug.clear();
+  cache.newsList.clear();
+  cache.newsBySlug.clear();
+
+  return result?.affectedRows || 0;
+}
+
+export async function deleteNewsBySlug(slug) {
+  const normalizedSlug = slugify(slug || "");
+  if (!normalizedSlug) {
+    throw new Error("Slug is verplicht");
+  }
+
+  await ensureSchemaOnce();
+  const pool = getPool();
+  const [result] = await pool.query("DELETE FROM news_posts WHERE slug = ?", [
+    normalizedSlug,
+  ]);
+
+  cache.newsList.clear();
+  cache.newsBySlug.clear();
+
+  return result?.affectedRows || 0;
+}

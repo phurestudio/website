@@ -39,6 +39,9 @@ export default function AdminDashboard() {
   const [gameStatus, setGameStatus] = useState({ loading: false, message: "" });
   const [newsStatus, setNewsStatus] = useState({ loading: false, message: "" });
   const [games, setGames] = useState([]);
+  const [newsItems, setNewsItems] = useState([]);
+  const [gameDeleteStatus, setGameDeleteStatus] = useState("");
+  const [newsDeleteStatus, setNewsDeleteStatus] = useState("");
 
   useEffect(() => {
     async function loadGames() {
@@ -51,7 +54,18 @@ export default function AdminDashboard() {
         setGames([]);
       }
     }
+    async function loadNews() {
+      try {
+        const res = await fetch("/api/admin/news?limit=200");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setNewsItems(Array.isArray(data.news) ? data.news : []);
+      } catch {
+        setNewsItems([]);
+      }
+    }
     loadGames();
+    loadNews();
   }, []);
 
   async function handleGameSubmit(e) {
@@ -140,6 +154,49 @@ export default function AdminDashboard() {
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     window.location.href = "/admin/login";
+  }
+
+  async function handleDeleteGame(slug) {
+    const confirmed = window.confirm(
+      `Delete game "${slug}"? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setGameDeleteStatus("Deleting game...");
+    try {
+      const res = await fetch(`/api/admin/games?slug=${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Delete failed");
+      setGames((prev) => prev.filter((game) => game.slug !== slug));
+      setNewsItems((prev) =>
+        prev.map((post) => (post.gameSlug === slug ? { ...post, gameSlug: null } : post))
+      );
+      setGameDeleteStatus(`Deleted ${slug}`);
+    } catch (err) {
+      setGameDeleteStatus(err.message || "Delete failed");
+    }
+  }
+
+  async function handleDeleteNews(slug) {
+    const confirmed = window.confirm(
+      `Delete news article "${slug}"? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setNewsDeleteStatus("Deleting news article...");
+    try {
+      const res = await fetch(`/api/admin/news?slug=${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Delete failed");
+      setNewsItems((prev) => prev.filter((post) => post.slug !== slug));
+      setNewsDeleteStatus(`Deleted ${slug}`);
+    } catch (err) {
+      setNewsDeleteStatus(err.message || "Delete failed");
+    }
   }
 
   return (
@@ -357,6 +414,95 @@ export default function AdminDashboard() {
               {newsStatus.loading ? "Save..." : "Save news article"}
             </button>
           </form>
+        </section>
+      </div>
+
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+          alignItems: "start",
+          marginTop: 16,
+        }}
+      >
+        <section className="card" style={{ display: "grid", gap: 12 }}>
+          <div>
+            <h2 style={{ margin: 0 }}>Delete game</h2>
+            <p style={{ margin: 0 }}>Remove a game and unlink it from news posts.</p>
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {games.length ? (
+              games.map((game) => (
+                <div
+                  key={game.slug}
+                  className="card"
+                  style={{ display: "flex", justifyContent: "space-between", gap: 12 }}
+                >
+                  <div>
+                    <strong>{game.title}</strong>
+                    <div style={{ opacity: 0.7, fontSize: 13 }}>{game.slug}</div>
+                  </div>
+                  <button
+                    className="badge"
+                    type="button"
+                    onClick={() => handleDeleteGame(game.slug)}
+                    style={{ padding: "8px 12px", background: "#3a1515" }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="card" style={{ padding: "10px 12px" }}>
+                No games found.
+              </div>
+            )}
+            {gameDeleteStatus ? (
+              <div className="card" style={{ padding: "10px 12px" }}>
+                {gameDeleteStatus}
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="card" style={{ display: "grid", gap: 12 }}>
+          <div>
+            <h2 style={{ margin: 0 }}>Delete news article</h2>
+            <p style={{ margin: 0 }}>Remove a published news article.</p>
+          </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {newsItems.length ? (
+              newsItems.map((post) => (
+                <div
+                  key={post.slug}
+                  className="card"
+                  style={{ display: "flex", justifyContent: "space-between", gap: 12 }}
+                >
+                  <div>
+                    <strong>{post.title}</strong>
+                    <div style={{ opacity: 0.7, fontSize: 13 }}>{post.slug}</div>
+                  </div>
+                  <button
+                    className="badge"
+                    type="button"
+                    onClick={() => handleDeleteNews(post.slug)}
+                    style={{ padding: "8px 12px", background: "#3a1515" }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="card" style={{ padding: "10px 12px" }}>
+                No news articles found.
+              </div>
+            )}
+            {newsDeleteStatus ? (
+              <div className="card" style={{ padding: "10px 12px" }}>
+                {newsDeleteStatus}
+              </div>
+            ) : null}
+          </div>
         </section>
       </div>
     </div>

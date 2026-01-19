@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { createGame, listGames } from "@/lib/data";
+import { createGame, deleteGameBySlug, listGames } from "@/lib/data";
 
 const COOKIE_NAME = "admin_token";
 
@@ -76,6 +76,34 @@ export async function PUT(req) {
   } catch (err) {
     console.error("Failed to update game", err);
     const error = err?.message || "Failed to update game";
+    return new Response(JSON.stringify({ error }), { status: 500 });
+  }
+}
+
+export async function DELETE(req) {
+  if (!isAuthorized(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const slug = url.searchParams.get("slug");
+    if (!slug) {
+      return new Response(JSON.stringify({ error: "Missing slug" }), { status: 400 });
+    }
+
+    const deleted = await deleteGameBySlug(slug);
+    if (!deleted) {
+      return new Response(JSON.stringify({ error: "Game not found" }), { status: 404 });
+    }
+
+    return new Response(JSON.stringify({ message: "Game deleted", slug }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Failed to delete game", err);
+    const error = err?.message || "Failed to delete game";
     return new Response(JSON.stringify({ error }), { status: 500 });
   }
 }
